@@ -1,6 +1,6 @@
-# L1nk
+# L1nK
 
-L1nk is a powerful macOS menu bar utility that creates generic link files (`.l1nk`) for any URL. It treats web links as first-class citizens in your file system, with special integrations for popular services.
+L1nK is a powerful macOS menu bar utility that creates generic link files (`.l1nk`) for any URL. It treats web links as first-class citizens in your file system, with special integrations for popular services.
 
 ## Features
 
@@ -17,16 +17,16 @@ L1nk is a powerful macOS menu bar utility that creates generic link files (`.l1n
 
 ## Installation
 
-1.  Download the latest `L1nk.dmg`.
-2.  Drag `L1nk.app` to your **Applications** folder.
-3.  Launch **L1nk** from your Applications folder.
+1.  Download the latest `L1nK.dmg`.
+2.  Drag `L1nK.app` to your **Applications** folder.
+3.  Launch **L1nK** from your Applications folder.
 
 *Note: On first launch, you may need to allow the application to run in your System Settings if it's unsigned.*
 
 ## Usage
 
 ### Creating Links
-- **Drag & Drop**: Drag a URL from your browser onto the L1nk menu bar icon (or the popover window).
+- **Drag & Drop**: Drag a URL from your browser onto the L1nK menu bar icon (or the popover window).
 - **Clipboard**: Copy a URL and click "Create from Clipboard" in the menu.
 - **Finder Service**: Right-click any folder in Finder > **Services** > **Create L1nk Here** (requires clipboard content).
 
@@ -46,7 +46,19 @@ Run the installer script to build the app and generate a disk image:
 ./install.sh
 ```
 
-This will create `L1nk.dmg` in the `build` directory.
+This will create `L1nK.dmg` in the `build` directory.
+
+### Code Signing
+To sign the app with your Apple Developer Certificate:
+
+1.  Find your signing identity:
+    ```bash
+    security find-identity -v -p codesigning
+    ```
+2.  Run the build script with your identity:
+    ```bash
+    SIGNING_IDENTITY="Apple Development: Your Name (TEAMID)" ./install.sh
+    ```
 
 ### Project Structure
 - `Assets/`: Source images for icons.
