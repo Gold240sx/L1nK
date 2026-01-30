@@ -22,46 +22,5 @@
 	<string>12.0</string>
 	<key>LSUIElement</key>
 	<true/>
-	<key>CFBundleIconFile</key>
-	<string>AppIcon</string>
-	<key>CFBundleDocumentTypes</key>
-	<array>
-		<dict>
-			<key>CFBundleTypeName</key>
-			<string>L1nk Document</string>
-			<key>CFBundleTypeRole</key>
-			<string>Editor</string>
-			<key>LSHandlerRank</key>
-			<string>Owner</string>
-			<key>LSItemContentTypes</key>
-			<array>
-				<string>com.yourcompany.l1nk</string>
-			</array>
-			<key>CFBundleTypeIconFile</key>
-			<string>LinkDocIcon</string>
-		</dict>
-	</array>
-	<key>UTExportedTypeDeclarations</key>
-	<array>
-		<dict>
-			<key>UTTypeIdentifier</key>
-			<string>com.yourcompany.l1nk</string>
-			<key>UTTypeDescription</key>
-			<string>L1nk Document</string>
-			<key>UTTypeConformsTo</key>
-			<array>
-				<string>public.plain-text</string>
-			</array>
-			<key>UTTypeTagSpecification</key>
-			<dict>
-				<key>public.filename-extension</key>
-				<array>
-					<string>l1nk</string>
-				</array>
-			</dict>
-			<key>UTTypeIconFile</key>
-			<string>LinkDocIcon</string>
-		</dict>
-	</array>
 </dict>
 </plist>

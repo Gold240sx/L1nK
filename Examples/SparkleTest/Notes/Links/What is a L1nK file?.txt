@@ -1,0 +1,21 @@
+What is a L1nK file? 
+
+A L1nK file is a file that allows quick file-based saving of URL's.
+Helpful for saving things like associated URLS within a folder.
+
+Use Cases:
+
+Reference Code Project: {
+	item1: Code Folder + Contends,
+	item2: Project Wallpaper,
+	item3: L1nK file*
+}
+
+* As opposed to saving it as a Txt file, where the user needs to open it, select all copy, then open the browser of choice then paste, this allows 1 click to open. 1 click to save (With my lightweight Menubar App called "L1nK")
+
+Check it out here if you're interested: 
+
+https://github.com/Gold240sx/L1nK
+
+Live Downloadable version coming soon!
+

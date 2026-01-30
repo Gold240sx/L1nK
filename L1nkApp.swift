@@ -127,23 +127,14 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     
     @objc func reactivatePopover() {
         // Ensure popover regains focus after save panel closes
-        if popover.isShown {
-            NSApp.activate(ignoringOtherApps: true)
-            // Force the popover to update its appearance
-            if let button = statusItem.button {
-                popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
-            }
-            // Keep popover focused
-            DispatchQueue.main.async {
-                self.keepPopoverFocused()
-            }
-        }
+        guard popover.isShown else { return }
+        NSApp.activate(ignoringOtherApps: true)
+        keepPopoverFocused()
     }
     
     @objc func applicationDidBecomeActive(_ notification: Notification) {
-        // Keep popover focused when app becomes active
+        // Keep popover focused when app becomes active, but don't reopen if closed
         if popover.isShown {
-            reactivatePopover()
             keepPopoverFocused()
         }
     }
@@ -220,6 +211,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     }
     
     func keepPopoverFocused() {
+        // Only keep focused if popover is actually shown
+        guard popover.isShown else { return }
+        
         // Access the popover's window and keep it key (popovers can't be main windows)
         if let popoverWindow = popover.contentViewController?.view.window {
             popoverWindow.makeKey()
@@ -246,27 +240,32 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     }
     
     func startEventMonitor() {
+        // Stop any existing monitor first
+        eventMonitor?.stop()
+        
         eventMonitor = EventMonitor(mask: [.leftMouseDown, .rightMouseDown]) { [weak self] event in
-            guard let self = self else { return }
+            guard let self = self, self.popover.isShown else {
+                return
+            }
             
-            if self.popover.isShown {
-                // Keep popover focused
-                self.keepPopoverFocused()
+            // Check if click is outside popover
+            if let popoverWindow = self.popover.contentViewController?.view.window {
+                let windowLocation = popoverWindow.convertPoint(fromScreen: NSEvent.mouseLocation)
                 
-                // Check if click is outside popover
-                if let popoverWindow = self.popover.contentViewController?.view.window {
-                    let windowLocation = popoverWindow.convertPoint(fromScreen: NSEvent.mouseLocation)
-                    
-                    if !popoverWindow.frame.contains(windowLocation) {
-                        // Click is outside popover, close it
-                        self.popover.performClose(nil)
-                        self.eventMonitor?.stop()
-                    }
-                } else {
-                    // Popover window not found, close anyway
+                if !popoverWindow.frame.contains(windowLocation) {
+                    // Click is outside popover, close it
                     self.popover.performClose(nil)
                     self.eventMonitor?.stop()
+                    self.stopFocusTimer()
+                } else {
+                    // Click is inside, keep focused
+                    self.keepPopoverFocused()
                 }
+            } else {
+                // Popover window not found, close anyway
+                self.popover.performClose(nil)
+                self.eventMonitor?.stop()
+                self.stopFocusTimer()
             }
         }
         eventMonitor?.start()
@@ -286,15 +285,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     func popoverWillShow(_ notification: Notification) {
         // Ensure app is active when popover shows
         NSApp.activate(ignoringOtherApps: true)
-        // Keep popover focused
-        DispatchQueue.main.async {
-            self.keepPopoverFocused()
-        }
     }
     
     func popoverDidShow(_ notification: Notification) {
         // Ensure popover stays focused after showing
         keepPopoverFocused()
+        startFocusTimer()
     }
 
     func application(_ application: NSApplication, open urls: [URL]) {

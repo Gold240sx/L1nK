@@ -15,30 +15,14 @@ targets:
     platform: macOS
     deploymentTarget: "12.0"
     sources:
-      - path: .
-        excludes:
-          - "*.xcodeproj"
-          - "*.xcworkspace"
-          - "build"
-          - ".git"
-          - "*.md"
-          - "*.sh"
-          - "*.py"
-          - "*.yml"
-          - "*.yaml"
-          - "Assets"
-          - "*.l1nk"
-          - "VERSION"
-          - "convert_icon.swift"
-          - "File*.txt"
+      - L1nkApp.swift
+      - Models
+      - Views
+      - ViewModels
+      - Services
     resources:
       - Assets.xcassets
-      - path: AppIcon.icns
-      - path: YouTubeIcon.icns
-      - path: GitHubIcon.icns
-      - path: AppStoreIcon.icns
-      - path: VimeoIcon.icns
-      - path: LinkDocIcon.icns
+      - Assets/*.icns
     settings:
       PRODUCT_BUNDLE_IDENTIFIER: com.yourcompany.l1nk
       INFOPLIST_FILE: Info.plist
