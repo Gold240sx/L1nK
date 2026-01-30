@@ -12,9 +12,10 @@ struct L1nkApp: App {
     }
 }
 
-class AppDelegate: NSObject, NSApplicationDelegate {
+class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     var statusItem: NSStatusItem!
     var popover: NSPopover!
+    var settingsWindow: NSWindow?
     
     override init() {
         super.init()
@@ -33,10 +34,93 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         
         // Setup Popover
         popover = NSPopover()
-        popover.contentSize = NSSize(width: 400, height: 450)
+        popover.contentSize = NSSize(width: 360, height: 460)
         popover.behavior = .transient
+        popover.animates = true
         // Using ContentView as the root view for the popover
         popover.contentViewController = NSHostingController(rootView: ContentView())
+        
+        // Set delegate to handle dismissal
+        popover.delegate = self
+        
+        // Listen for notifications
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(closePopover),
+            name: NSNotification.Name("ClosePopover"),
+            object: nil
+        )
+        
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(showSettingsWindow),
+            name: NSNotification.Name("ShowSettings"),
+            object: nil
+        )
+        
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(closeSettingsWindow),
+            name: NSNotification.Name("CloseSettingsWindow"),
+            object: nil
+        )
+    }
+    
+    @objc func closePopover() {
+        if popover.isShown {
+            popover.performClose(nil)
+        }
+    }
+    
+    @objc func showSettingsWindow() {
+        // Close popover first
+        closePopover()
+        
+        // Create window if it doesn't exist
+        if settingsWindow == nil {
+            let contentView = SettingsView()
+            let hostingView = NSHostingController(rootView: contentView)
+            
+            settingsWindow = NSWindow(
+                contentRect: NSRect(x: 0, y: 0, width: 400, height: 650),
+                styleMask: [.borderless],
+                backing: .buffered,
+                defer: false
+            )
+            settingsWindow?.center()
+            settingsWindow?.isReleasedWhenClosed = false
+            settingsWindow?.collectionBehavior = [.moveToActiveSpace]
+            
+            // Create visual effect view for glass background
+            let visualEffectView = NSVisualEffectView()
+            visualEffectView.material = .hudWindow
+            visualEffectView.blendingMode = .behindWindow
+            visualEffectView.state = .active
+            visualEffectView.frame = NSRect(x: 0, y: 0, width: 400, height: 650)
+            visualEffectView.wantsLayer = true
+            visualEffectView.layer?.cornerRadius = 16
+            visualEffectView.layer?.masksToBounds = true
+            
+            // Add hosting view as subview
+            hostingView.view.frame = visualEffectView.bounds
+            hostingView.view.autoresizingMask = [.width, .height]
+            visualEffectView.addSubview(hostingView.view)
+            
+            settingsWindow?.contentView = visualEffectView
+            settingsWindow?.hasShadow = true
+            settingsWindow?.isMovableByWindowBackground = true
+            settingsWindow?.level = .floating
+            settingsWindow?.isOpaque = false
+            settingsWindow?.backgroundColor = .clear
+        }
+        
+        // Show and activate the window
+        settingsWindow?.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+    }
+    
+    @objc func closeSettingsWindow() {
+        settingsWindow?.close()
     }
     
     @objc func togglePopover(_ sender: AnyObject?) {
@@ -48,6 +132,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 NSApp.activate(ignoringOtherApps: true)
             }
         }
+    }
+    
+    // MARK: - NSPopoverDelegate
+    func popoverShouldClose(_ popover: NSPopover) -> Bool {
+        return true
+    }
+    
+    func popoverDidClose(_ notification: Notification) {
+        // Popover closed
     }
 
     func application(_ application: NSApplication, open urls: [URL]) {
