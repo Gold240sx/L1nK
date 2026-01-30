@@ -286,6 +286,14 @@ struct ContentView: View {
         
         savePanel.begin { response in
             self.isProcessing = false
+            
+            // Reactivate the app and popover after save panel closes
+            DispatchQueue.main.async {
+                NSApp.activate(ignoringOtherApps: true)
+                // Post notification to reactivate popover
+                NotificationCenter.default.post(name: NSNotification.Name("ReactivatePopover"), object: nil)
+            }
+            
             if response == .OK, let targetURL = savePanel.url {
                 do {
                     try content.write(to: targetURL, atomically: true, encoding: .utf8)

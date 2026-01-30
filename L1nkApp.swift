@@ -1,6 +1,32 @@
 import SwiftUI
 import AppKit
 
+class EventMonitor {
+    private var monitor: Any?
+    private let mask: NSEvent.EventTypeMask
+    private let handler: (NSEvent) -> Void
+    
+    init(mask: NSEvent.EventTypeMask, handler: @escaping (NSEvent) -> Void) {
+        self.mask = mask
+        self.handler = handler
+    }
+    
+    deinit {
+        stop()
+    }
+    
+    func start() {
+        monitor = NSEvent.addGlobalMonitorForEvents(matching: mask, handler: handler)
+    }
+    
+    func stop() {
+        if let monitor = monitor {
+            NSEvent.removeMonitor(monitor)
+            self.monitor = nil
+        }
+    }
+}
+
 @main
 struct L1nkApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
@@ -12,10 +38,22 @@ struct L1nkApp: App {
     }
 }
 
+class SettingsWindow: NSWindow {
+    override var canBecomeKey: Bool {
+        return true
+    }
+    
+    override var canBecomeMain: Bool {
+        return true
+    }
+}
+
 class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     var statusItem: NSStatusItem!
     var popover: NSPopover!
     var settingsWindow: NSWindow?
+    var eventMonitor: EventMonitor?
+    var focusTimer: Timer?
     
     override init() {
         super.init()
@@ -64,11 +102,49 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
             name: NSNotification.Name("CloseSettingsWindow"),
             object: nil
         )
+        
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(reactivatePopover),
+            name: NSNotification.Name("ReactivatePopover"),
+            object: nil
+        )
+        
+        // Monitor for app activation to keep popover focused
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(applicationDidBecomeActive),
+            name: NSApplication.didBecomeActiveNotification,
+            object: nil
+        )
     }
     
     @objc func closePopover() {
         if popover.isShown {
             popover.performClose(nil)
+        }
+    }
+    
+    @objc func reactivatePopover() {
+        // Ensure popover regains focus after save panel closes
+        if popover.isShown {
+            NSApp.activate(ignoringOtherApps: true)
+            // Force the popover to update its appearance
+            if let button = statusItem.button {
+                popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+            }
+            // Keep popover focused
+            DispatchQueue.main.async {
+                self.keepPopoverFocused()
+            }
+        }
+    }
+    
+    @objc func applicationDidBecomeActive(_ notification: Notification) {
+        // Keep popover focused when app becomes active
+        if popover.isShown {
+            reactivatePopover()
+            keepPopoverFocused()
         }
     }
     
@@ -81,8 +157,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
             let contentView = SettingsView()
             let hostingView = NSHostingController(rootView: contentView)
             
-            settingsWindow = NSWindow(
-                contentRect: NSRect(x: 0, y: 0, width: 400, height: 650),
+            settingsWindow = SettingsWindow(
+                contentRect: NSRect(x: 0, y: 0, width: 400, height: 550),
                 styleMask: [.borderless],
                 backing: .buffered,
                 defer: false
@@ -96,7 +172,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
             visualEffectView.material = .hudWindow
             visualEffectView.blendingMode = .behindWindow
             visualEffectView.state = .active
-            visualEffectView.frame = NSRect(x: 0, y: 0, width: 400, height: 650)
+            visualEffectView.frame = NSRect(x: 0, y: 0, width: 400, height: 550)
             visualEffectView.wantsLayer = true
             visualEffectView.layer?.cornerRadius = 16
             visualEffectView.layer?.masksToBounds = true
@@ -112,6 +188,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
             settingsWindow?.level = .floating
             settingsWindow?.isOpaque = false
             settingsWindow?.backgroundColor = .clear
+            settingsWindow?.isMovable = true
         }
         
         // Show and activate the window
@@ -127,11 +204,71 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         if let button = statusItem.button {
             if popover.isShown {
                 popover.performClose(sender)
+                eventMonitor?.stop()
+                stopFocusTimer()
             } else {
                 popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
                 NSApp.activate(ignoringOtherApps: true)
+                // Ensure popover window is key to keep it tinted
+                DispatchQueue.main.async {
+                    self.keepPopoverFocused()
+                    self.startFocusTimer()
+                }
+                startEventMonitor()
             }
         }
+    }
+    
+    func keepPopoverFocused() {
+        // Access the popover's window and keep it key/main
+        if let popoverWindow = popover.contentViewController?.view.window {
+            popoverWindow.makeKey()
+            popoverWindow.makeMain()
+        }
+    }
+    
+    func startFocusTimer() {
+        // Periodically ensure popover stays focused
+        focusTimer?.invalidate()
+        focusTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
+            guard let self = self, self.popover.isShown else {
+                self?.focusTimer?.invalidate()
+                return
+            }
+            self.keepPopoverFocused()
+        }
+    }
+    
+    func stopFocusTimer() {
+        focusTimer?.invalidate()
+        focusTimer = nil
+    }
+    
+    func startEventMonitor() {
+        eventMonitor = EventMonitor(mask: [.leftMouseDown, .rightMouseDown]) { [weak self] event in
+            guard let self = self else { return }
+            
+            if self.popover.isShown {
+                // Keep popover focused
+                self.keepPopoverFocused()
+                
+                // Check if click is outside popover
+                if let popoverWindow = self.popover.contentViewController?.view.window {
+                    let windowLocation = popoverWindow.convertPoint(fromScreen: NSEvent.mouseLocation)
+                    
+                    if !popoverWindow.frame.contains(windowLocation) {
+                        // Click is outside popover, close it
+                        self.popover.performClose(nil)
+                        self.eventMonitor?.stop()
+                    }
+                } else {
+                    // Popover window not found, close anyway
+                    self.popover.performClose(nil)
+                    self.eventMonitor?.stop()
+                }
+            }
+        }
+        eventMonitor?.start()
     }
     
     // MARK: - NSPopoverDelegate
@@ -140,7 +277,23 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     }
     
     func popoverDidClose(_ notification: Notification) {
-        // Popover closed
+        // Popover closed, stop monitoring events and focus timer
+        eventMonitor?.stop()
+        stopFocusTimer()
+    }
+    
+    func popoverWillShow(_ notification: Notification) {
+        // Ensure app is active when popover shows
+        NSApp.activate(ignoringOtherApps: true)
+        // Keep popover focused
+        DispatchQueue.main.async {
+            self.keepPopoverFocused()
+        }
+    }
+    
+    func popoverDidShow(_ notification: Notification) {
+        // Ensure popover stays focused after showing
+        keepPopoverFocused()
     }
 
     func application(_ application: NSApplication, open urls: [URL]) {

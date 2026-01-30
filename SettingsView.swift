@@ -169,7 +169,7 @@ struct SettingsView: View {
                 .padding(20)
             }
         }
-        .frame(width: 400, height: 550)
+        .frame(width: 400, height: 400)
         .background(Color.clear)
         .alert(isPresented: $showPermissionAlert) {
             Alert(
