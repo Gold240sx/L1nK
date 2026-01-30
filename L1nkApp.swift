@@ -220,10 +220,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     }
     
     func keepPopoverFocused() {
-        // Access the popover's window and keep it key/main
+        // Access the popover's window and keep it key (popovers can't be main windows)
         if let popoverWindow = popover.contentViewController?.view.window {
             popoverWindow.makeKey()
-            popoverWindow.makeMain()
+            // Ensure the app is active to keep popover tinted
+            NSApp.activate(ignoringOtherApps: true)
         }
     }
     

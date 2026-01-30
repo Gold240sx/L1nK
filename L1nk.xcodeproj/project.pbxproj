@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 77;
+	objectVersion = 63;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -22,7 +22,7 @@
 /* Begin PBXFileReference section */
 		0552A9984333109324593B6E /* LinkDocIcon.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = LinkDocIcon.icns; sourceTree = "<group>"; };
 		084FBFBE34203AAC8C80A8F9 /* VimeoIcon.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = VimeoIcon.icns; sourceTree = "<group>"; };
-		0F8C57F0822FD8169249AB18 /* .gitignore */ = {isa = PBXFileReference; path = .gitignore; sourceTree = "<group>"; };
+		0F8C57F0822FD8169249AB18 /* .gitignore */ = {isa = PBXFileReference; lastKnownFileType = text; path = .gitignore; sourceTree = "<group>"; };
 		268D886A4E6BA1BF0842A2BD /* YouTubeIcon.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = YouTubeIcon.icns; sourceTree = "<group>"; };
 		305995185515328FEB93E477 /* AppStoreIcon.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = AppStoreIcon.icns; sourceTree = "<group>"; };
 		625989DB3D392021603A11BF /* L1nk.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = L1nk.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -53,7 +53,6 @@
 				0F8C57F0822FD8169249AB18 /* .gitignore */,
 				775DDA11842771BE4B74A7C5 /* AppIcon.icns */,
 				305995185515328FEB93E477 /* AppStoreIcon.icns */,
-				F3029DEA6C006E5FCC9B29C1 /* Assets.xcassets */,
 				CF2A63ECA07AC7C638D3639C /* ContentView.swift */,
 				D270F5B23D1CC3E01CA0017E /* GitHubIcon.icns */,
 				F50AFF4A87A40264D6C390F4 /* Info.plist */,
@@ -111,7 +110,7 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
-				LastUpgradeCheck = 1500;
+				LastUpgradeCheck = 2620;
 				TargetAttributes = {
 					4C85B44AD8AE8967AB507DB9 = {
 						ProvisioningStyle = Automatic;
@@ -128,7 +127,6 @@
 			);
 			mainGroup = 1B92220006175B060A9046BE;
 			minimizedProjectReferenceProxies = 1;
-			preferredProjectObjectVersion = 77;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -202,9 +200,11 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
@@ -218,6 +218,7 @@
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 5.0;
@@ -258,9 +259,11 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -281,6 +284,7 @@
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
@@ -294,7 +298,11 @@
 				CODE_SIGN_ENTITLEMENTS = L1nk.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
+				DEAD_CODE_STRIPPING = YES;
+				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				ENABLE_USER_SELECTED_FILES = readwrite;
 				INFOPLIST_FILE = Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -314,7 +322,11 @@
 				CODE_SIGN_ENTITLEMENTS = L1nk.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
+				DEAD_CODE_STRIPPING = YES;
+				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				ENABLE_USER_SELECTED_FILES = readwrite;
 				INFOPLIST_FILE = Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
