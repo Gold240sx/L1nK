@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import Sparkle
 
 class EventMonitor {
     private var monitor: Any?
@@ -30,10 +31,64 @@ class EventMonitor {
 @main
 struct L1nkApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+    
+    private let updaterController: SPUStandardUpdaterController
+    private let updaterDelegate: UpdaterDelegate
+    private let updateChecker: UpdateChecker
+    
+    init() {
+        // Create updater delegate for handling update events
+        let delegate = UpdaterDelegate()
+        
+        // Initialize updater controller with delegate
+        // Set startingUpdater to false to avoid Sparkle's automatic checking
+        // We'll handle checking manually through UpdateChecker to avoid duplicate checks
+        let controller = SPUStandardUpdaterController(
+            startingUpdater: false,
+            updaterDelegate: delegate,
+            userDriverDelegate: nil
+        )
+        
+        // Configure update checker
+        let updateConfig = UpdateChecker.Configuration(
+            checkOnLaunch: true,           // Check on launch
+            launchCheckDelay: 1.0,         // Wait 1 second after launch
+            checkPeriodically: true,       // Check automatically every hour
+            updateCheckInterval: 3600,     // 1 hour = 3600 seconds
+            checkOnBecomeActive: false     // Don't check when app becomes active
+        )
+        
+        // Create UpdateChecker (pass delegate for status tracking)
+        let checker = UpdateChecker(
+            updater: controller.updater,
+            updaterDelegate: delegate,
+            configuration: updateConfig
+        )
+        
+        // Assign to properties
+        self.updaterDelegate = delegate
+        self.updaterController = controller
+        self.updateChecker = checker
+        
+        // Store references in AppDelegate for access
+        // We'll set this after AppDelegate is created
+        DispatchQueue.main.async {
+            if let appDelegate = NSApp.delegate as? AppDelegate {
+                appDelegate.updaterController = controller
+                appDelegate.updaterDelegate = delegate
+                appDelegate.updateChecker = checker
+            }
+        }
+    }
 
     var body: some Scene {
         Settings {
             EmptyView()
+        }
+        .commands {
+            CommandGroup(after: .appInfo) {
+                CheckForUpdatesView(updater: updaterController.updater)
+            }
         }
     }
 }
@@ -48,12 +103,28 @@ class SettingsWindow: NSWindow {
     }
 }
 
+class WelcomeWindow: NSWindow {
+    override var canBecomeKey: Bool {
+        return true
+    }
+    
+    override var canBecomeMain: Bool {
+        return true
+    }
+}
+
 class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     var statusItem: NSStatusItem!
     var popover: NSPopover!
     var settingsWindow: NSWindow?
+    var welcomeWindow: NSWindow?
     var eventMonitor: EventMonitor?
     var focusTimer: Timer?
+    
+    // Sparkle updater (set by L1nkApp)
+    var updaterController: SPUStandardUpdaterController?
+    var updaterDelegate: UpdaterDelegate?
+    var updateChecker: UpdateChecker?
     
     override init() {
         super.init()
@@ -62,6 +133,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Service
         NSApp.servicesProvider = self
+        
+        // Check for updates on launch (handled by UpdateChecker)
+        updateChecker?.checkOnLaunch()
+        
+        // Show welcome window on first launch
+        checkAndShowWelcome()
         
         // Setup Menu Bar Item
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -107,6 +184,27 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
             self,
             selector: #selector(reactivatePopover),
             name: NSNotification.Name("ReactivatePopover"),
+            object: nil
+        )
+        
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(closeWelcomeWindow),
+            name: NSNotification.Name("CloseWelcomeWindow"),
+            object: nil
+        )
+        
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(showWelcomeWindow),
+            name: NSNotification.Name("ShowWelcomeWindow"),
+            object: nil
+        )
+        
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleUpdateAvailable),
+            name: NSNotification.Name("UpdateAvailable"),
             object: nil
         )
         
@@ -189,6 +287,76 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     
     @objc func closeSettingsWindow() {
         settingsWindow?.close()
+    }
+    
+    @objc func checkAndShowWelcome() {
+        // Check if user has seen welcome screen
+        let hasSeenWelcome = UserDefaults.standard.bool(forKey: "hasSeenWelcome")
+        
+        if !hasSeenWelcome {
+            // Show welcome window after a brief delay
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                self.showWelcomeWindow()
+            }
+        }
+    }
+    
+    @objc func showWelcomeWindow() {
+        // Create window if it doesn't exist
+        if welcomeWindow == nil {
+            let contentView = WelcomeView(isPresented: Binding(
+                get: { true },
+                set: { _ in }
+            ))
+            let hostingView = NSHostingController(rootView: contentView)
+            
+            welcomeWindow = WelcomeWindow(
+                contentRect: NSRect(x: 0, y: 0, width: 600, height: 700),
+                styleMask: [.borderless],
+                backing: .buffered,
+                defer: false
+            )
+            welcomeWindow?.center()
+            welcomeWindow?.isReleasedWhenClosed = false
+            welcomeWindow?.collectionBehavior = [.moveToActiveSpace]
+            
+            // Create visual effect view for glass background
+            let visualEffectView = NSVisualEffectView()
+            visualEffectView.material = .hudWindow
+            visualEffectView.blendingMode = .behindWindow
+            visualEffectView.state = .active
+            visualEffectView.frame = NSRect(x: 0, y: 0, width: 600, height: 700)
+            visualEffectView.wantsLayer = true
+            visualEffectView.layer?.cornerRadius = 20
+            visualEffectView.layer?.masksToBounds = true
+            
+            // Add hosting view as subview
+            hostingView.view.frame = visualEffectView.bounds
+            hostingView.view.autoresizingMask = [.width, .height]
+            visualEffectView.addSubview(hostingView.view)
+            
+            welcomeWindow?.contentView = visualEffectView
+            welcomeWindow?.hasShadow = true
+            welcomeWindow?.isMovableByWindowBackground = true
+            welcomeWindow?.level = .floating
+            welcomeWindow?.isOpaque = false
+            welcomeWindow?.backgroundColor = .clear
+            welcomeWindow?.isMovable = true
+        }
+        
+        // Show and activate the window
+        welcomeWindow?.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+    }
+    
+    @objc func closeWelcomeWindow() {
+        welcomeWindow?.close()
+        welcomeWindow = nil
+    }
+    
+    @objc func handleUpdateAvailable(_ notification: Notification) {
+        // This notification is handled by SettingsView via onReceive
+        // We can add additional logic here if needed
     }
     
     @objc func togglePopover(_ sender: AnyObject?) {

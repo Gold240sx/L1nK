@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 struct ContentView: View {
     @StateObject private var viewModel = ContentViewModel()
@@ -22,16 +23,20 @@ struct ContentView: View {
                         .frame(width: 100, height: 100)
                         .blur(radius: 20)
                     
-                    Image(nsImage: NSImage(named: "AppIcon") ?? NSImage(systemSymbolName: "link.circle.fill", accessibilityDescription: nil)!)
-                        .resizable()
-                        .frame(width: 64, height: 64)
-                        .foregroundStyle(
-                            LinearGradient(
-                                colors: [.blue, .purple],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
+                    Group {
+                        if let appIcon = NSImage(named: "AppIconDefault")
+                            ?? NSImage(named: "AppIconDisplay")
+                            ?? NSImage(named: "AppIcon") {
+                            Image(nsImage: appIcon)
+                                .resizable()
+                                .frame(width: 64, height: 64)
+                        } else {
+                            let bundleIcon = NSWorkspace.shared.icon(forFile: Bundle.main.bundlePath)
+                            Image(nsImage: bundleIcon)
+                                .resizable()
+                                .frame(width: 64, height: 64)
+                        }
+                    }
                 }
                 
                 // Title

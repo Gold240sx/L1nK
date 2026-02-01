@@ -1,8 +1,9 @@
 import SwiftUI
+import AppKit
 
 struct SettingsView: View {
     @StateObject private var viewModel = SettingsViewModel()
-
+    
     var body: some View {
         VStack(spacing: 0) {
             // Close button in top right
@@ -26,20 +27,51 @@ struct SettingsView: View {
                 VStack(spacing: 24) {
                     // Header
                     VStack(spacing: 8) {
-                        Image(nsImage: NSImage(named: "AppIcon") ?? NSImage(systemSymbolName: "link.circle.fill", accessibilityDescription: nil)!)
-                            .resizable()
-                            .frame(width: 64, height: 64)
-                            .foregroundStyle(
-                                LinearGradient(
-                                    colors: [.blue, .purple],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
+                        // App Icon
+                        Group {
+                            if let appIcon = NSImage(named: "AppIconDefault")
+                                ?? NSImage(named: "AppIconDisplay")
+                                ?? NSImage(named: "AppIcon") {
+                                Image(nsImage: appIcon)
+                                    .resizable()
+                                    .frame(width: 64, height: 64)
+                            } else {
+                                // Fallback to bundle icon or SF Symbol
+                                let bundleIcon = NSWorkspace.shared.icon(forFile: Bundle.main.bundlePath)
+                                Image(nsImage: bundleIcon)
+                                    .resizable()
+                                    .frame(width: 64, height: 64)
+                            }
+                        }
                         
                         Text("L1nK Settings")
                             .font(.system(size: 24, weight: .semibold, design: .rounded))
                             .foregroundColor(.primary)
+                        
+                        // Version and Update Status
+                        VStack(spacing: 6) {
+                            Text("Version \(viewModel.appVersion)")
+                                .font(.system(size: 12))
+                                .foregroundColor(.secondary)
+                            
+                            if viewModel.hasUpdateAvailable {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "arrow.down.circle.fill")
+                                        .font(.system(size: 11))
+                                        .foregroundColor(.green)
+                                    Text("Update Available")
+                                        .font(.system(size: 12, weight: .medium))
+                                        .foregroundColor(.green)
+                                }
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 4)
+                                .background {
+                                    Capsule()
+                                        .fill(Color.green.opacity(0.15))
+                                }
+                            }
+                        }
+                        .padding(.top, 4)
                     }
                     .padding(.top, 8)
                 
@@ -103,6 +135,59 @@ struct SettingsView: View {
                     Divider()
                         .padding(.horizontal, 16)
                     
+                    // Updates Settings Section
+                    SettingsSectionContent(title: "Updates") {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Button(action: { viewModel.checkForUpdates() }) {
+                                HStack {
+                                    if viewModel.isCheckingForUpdates {
+                                        ProgressView()
+                                            .scaleEffect(0.7)
+                                            .frame(width: 12, height: 12)
+                                    } else {
+                                        Image(systemName: "arrow.clockwise")
+                                            .font(.system(size: 12))
+                                    }
+                                    Text("Check for Updates")
+                                        .font(.system(size: 13))
+                                }
+                            }
+                            .buttonStyle(.bordered)
+                            .controlSize(.small)
+                            .disabled(viewModel.isCheckingForUpdates)
+                            
+                            // Update status message
+                            if viewModel.updateStatus != .idle {
+                                Group {
+                                    switch viewModel.updateStatus {
+                                    case .checking:
+                                        Text("Checking for updates...")
+                                            .font(.system(size: 11))
+                                            .foregroundColor(.secondary)
+                                    case .updateAvailable:
+                                        Text("Update available!")
+                                            .font(.system(size: 11))
+                                            .foregroundColor(.green)
+                                    case .noUpdateAvailable:
+                                        Text("You're up to date")
+                                            .font(.system(size: 11))
+                                            .foregroundColor(.secondary)
+                                    case .error(let message):
+                                        Text("Error: \(message)")
+                                            .font(.system(size: 11))
+                                            .foregroundColor(.red)
+                                    case .idle:
+                                        EmptyView()
+                                    }
+                                }
+                                .padding(.top, 4)
+                            }
+                        }
+                    }
+                    
+                    Divider()
+                        .padding(.horizontal, 16)
+                    
                     // YouTube Settings Section
                     SettingsSectionContent(title: "YouTube") {
                         VStack(alignment: .leading, spacing: 12) {
@@ -141,6 +226,26 @@ struct SettingsView: View {
                             }
                         }
                     }
+                    
+                    Divider()
+                        .padding(.horizontal, 16)
+                    
+                    // Reset Welcome Section
+                    SettingsSectionContent(title: "Welcome") {
+                        Button(action: {
+                            UserDefaults.standard.set(false, forKey: "hasSeenWelcome")
+                            NotificationCenter.default.post(name: NSNotification.Name("ShowWelcomeWindow"), object: nil)
+                        }) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "arrow.counterclockwise")
+                                    .font(.system(size: 12))
+                                Text("Show Welcome Screen Again")
+                                    .font(.system(size: 13))
+                            }
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                    }
                 }
                 .padding(20)
                 .background {
@@ -163,6 +268,20 @@ struct SettingsView: View {
         }
         .frame(width: 400, height: 550)
         .background(Color.clear)
+        .onAppear {
+            // Connect update checker and updater when view appears
+            if let appDelegate = NSApp.delegate as? AppDelegate {
+                if let updateChecker = appDelegate.updateChecker {
+                    viewModel.setUpdateChecker(updateChecker)
+                }
+                if let updaterController = appDelegate.updaterController {
+                    viewModel.setUpdater(updaterController.updater)
+                }
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("UpdateAvailable"))) { _ in
+            viewModel.setUpdateAvailable(true)
+        }
         .alert(isPresented: $viewModel.showPermissionAlert) {
             Alert(
                 title: Text("Permission Error"),
@@ -198,6 +317,7 @@ struct SettingsSectionContent<Content: View>: View {
         }
     }
 }
+
 
 struct GlassBackground: NSViewRepresentable {
     func makeNSView(context: Context) -> NSVisualEffectView {
