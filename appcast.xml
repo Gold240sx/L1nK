@@ -3,12 +3,12 @@
     <channel>
         <title>L1nk</title>
         <item>
-            <title>0.9</title>
-            <pubDate>Sun, 01 Feb 2026 03:23:26 -0600</pubDate>
-            <sparkle:version>0.9</sparkle:version>
-            <sparkle:shortVersionString>0.9</sparkle:shortVersionString>
+            <title>1.0</title>
+            <pubDate>Sun, 01 Feb 2026 04:09:23 -0600</pubDate>
+            <sparkle:version>1.0</sparkle:version>
+            <sparkle:shortVersionString>1.0</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>12.0</sparkle:minimumSystemVersion>
-            <enclosure url="https://github.com/Gold240sx/L1nK/releases/download/PreRelease/L1nK.dmg" length="6959974" type="application/octet-stream" sparkle:edSignature="lv1tJJwmgCBq54Tb1MskRH2Yb0yiYdsdwKAr7No7W3PyQ1bPGfoOlcxWEMgGkt2o70fcDw4DGs2iM2GaTr3iDg=="/>
+            <enclosure url="https://github.com/Gold240sx/L1nK/releases/download/Release/L1nK.dmg" length="6962628" type="application/octet-stream" sparkle:edSignature="8QUfIkzcIRG9FutRgx8YbIaFlnfgly9jdvE4nI6B2PW/R7dFnnWlCYu1/HQ6ULfSF4k55b/8dxSnLD+vKu8wCA=="/>
         </item>
     </channel>
 </rss>
