@@ -67,23 +67,6 @@ struct L1nkApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     
     init() {
-        // Check for existing instance and activate it instead of launching a duplicate
-        let runningApps = NSRunningApplication.runningApplications(withBundleIdentifier: Bundle.main.bundleIdentifier ?? "")
-        let otherInstances = runningApps.filter { $0 != NSRunningApplication.current }
-        
-        if let existingInstance = otherInstances.first {
-            // Another instance is running - activate it and terminate this one
-            existingInstance.activate(options: [.activateAllWindows])
-            
-            // If we were launched with files to open, pass them to the existing instance
-            // (macOS handles this automatically via AppleEvents)
-            
-            // Terminate this duplicate instance
-            DispatchQueue.main.async {
-                NSApp.terminate(nil)
-            }
-        }
-        
         // Initialize SparkleManager (triggers singleton creation)
         _ = SparkleManager.shared
     }
@@ -131,6 +114,9 @@ class AuthWindow: NSWindow {
 }
 
 class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
+    /// Static flag to ensure status item is only created once across all instances
+    private static var statusItemCreated = false
+    
     var statusItem: NSStatusItem?
     var popover: NSPopover!
     var settingsWindow: NSWindow?
@@ -140,16 +126,13 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     var eventMonitor: EventMonitor?
     var focusTimer: Timer?
     
-    /// Track if we've already set up the status item
-    private var hasSetupStatusItem = false
-    
     /// SwiftData model container for persistent tabs
     var modelContainer: ModelContainer?
     
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // Prevent duplicate setup
-        guard !hasSetupStatusItem else { return }
-        hasSetupStatusItem = true
+        // Prevent duplicate status item creation using static flag
+        guard !AppDelegate.statusItemCreated else { return }
+        AppDelegate.statusItemCreated = true
         // Initialize SwiftData ModelContainer
         // Try CloudKit first, fall back to local-only if CloudKit isn't configured
         do {

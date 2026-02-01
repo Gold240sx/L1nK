@@ -76,9 +76,8 @@ class SubscriptionManager: ObservableObject {
     
     // MARK: - Purchase Flow
     
-    /// Open Stripe Payment Link in browser
+    /// Open Stripe Payment Link in browser (recommended for payment security)
     func openPaymentLink() {
-        // Add user info to payment link if available
         var urlString = paymentLinkURL
         
         // Pre-fill customer email if available

@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import AuthenticationServices
 
 struct WelcomeView: View {
     @Binding var isPresented: Bool
@@ -33,12 +34,17 @@ struct WelcomeView: View {
                         .offset(x: -CGFloat(currentPage) * geometry.size.width)
                     
                     // Page 2: How To Use
-                    HowToPage(dismissAction: dismissWelcome)
+                    HowToPage()
                         .frame(width: geometry.size.width)
                         .offset(x: -CGFloat(currentPage) * geometry.size.width)
                     
                     // Page 3: Pro Features
-                    ProFeaturesWelcomePage(dismissAction: dismissWelcome)
+                    ProFeaturesWelcomePage()
+                        .frame(width: geometry.size.width)
+                        .offset(x: -CGFloat(currentPage) * geometry.size.width)
+                    
+                    // Page 4: Sign In
+                    SignInWelcomePage(dismissAction: dismissWelcome)
                         .frame(width: geometry.size.width)
                         .offset(x: -CGFloat(currentPage) * geometry.size.width)
                 }
@@ -69,7 +75,7 @@ struct WelcomeView: View {
                     
                     // Page indicator dots
                     HStack(spacing: 8) {
-                        ForEach(0..<3) { index in
+                        ForEach(0..<4) { index in
                             Button(action: {
                                 withAnimation {
                                     currentPage = index
@@ -83,7 +89,7 @@ struct WelcomeView: View {
                         }
                     }
                     
-                    if currentPage < 2 {
+                    if currentPage < 3 {
                         Button(action: {
                             withAnimation {
                                 currentPage += 1
@@ -115,15 +121,17 @@ struct WelcomeView: View {
                     }
                 }
                 
-                // Skip link - always visible
-                Button(action: {
-                    dismissWelcome()
-                }) {
-                    Text("Skip and use basic features")
-                        .font(.system(size: 12))
-                        .foregroundColor(.secondary)
+                // Skip link - only visible on the Sign In page (page 3)
+                if currentPage == 3 {
+                    Button(action: {
+                        dismissWelcome()
+                    }) {
+                        Text("Skip sign in and use basic features")
+                            .font(.system(size: 12))
+                            .foregroundColor(.secondary)
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
             }
             .padding(.horizontal, 24)
             .padding(.bottom, 20)
@@ -263,8 +271,6 @@ struct FeaturesPage: View {
 }
 
 struct HowToPage: View {
-    let dismissAction: () -> Void
-    
     var body: some View {
         ScrollView {
             VStack(spacing: 32) {
@@ -331,40 +337,7 @@ struct HowToPage: View {
                     .padding(.leading, 48)
                 }
                 .padding(.horizontal, 24)
-                
-                    // Get Started Button (Skip sign in, use basic features)
-                    VStack(spacing: 12) {
-                        Button(action: dismissAction) {
-                            HStack(spacing: 10) {
-                                Text("Get Started")
-                                    .font(.system(size: 16, weight: .semibold))
-                                Image(systemName: "arrow.right")
-                                    .font(.system(size: 14, weight: .semibold))
-                            }
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 50)
-                            .background {
-                                RoundedRectangle(cornerRadius: 12)
-                                    .fill(
-                                        LinearGradient(
-                                            colors: [.blue, .purple],
-                                            startPoint: .leading,
-                                            endPoint: .trailing
-                                        )
-                                    )
-                                    .shadow(color: .blue.opacity(0.3), radius: 8, x: 0, y: 4)
-                            }
-                            .foregroundColor(.white)
-                        }
-                        .buttonStyle(.plain)
-                        
-                        Text("Use basic features without signing in")
-                            .font(.system(size: 12))
-                            .foregroundColor(.secondary)
-                    }
-                    .padding(.horizontal, 24)
-                    .padding(.top, 16)
-                    .padding(.bottom, 32)
+                .padding(.bottom, 32)
             }
         }
     }
@@ -456,7 +429,6 @@ struct HowToStep: View {
 // MARK: - Pro Features Welcome Page
 
 struct ProFeaturesWelcomePage: View {
-    let dismissAction: () -> Void
     @StateObject private var proManager = ProManager.shared
     @StateObject private var subscriptionManager = SubscriptionManager.shared
     @StateObject private var authManager = AuthManager.shared
@@ -577,30 +549,15 @@ struct ProFeaturesWelcomePage: View {
                 
                 // Action Button
                 if proManager.isPro {
-                    // Already Pro - Get Started button
-                    Button(action: dismissAction) {
-                        HStack(spacing: 10) {
-                            Text("Get Started")
-                                .font(.system(size: 16, weight: .semibold))
-                            Image(systemName: "arrow.right")
-                                .font(.system(size: 14, weight: .semibold))
-                        }
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 50)
-                        .background {
-                            RoundedRectangle(cornerRadius: 12)
-                                .fill(
-                                    LinearGradient(
-                                        colors: [.green, .green.opacity(0.8)],
-                                        startPoint: .leading,
-                                        endPoint: .trailing
-                                    )
-                                )
-                                .shadow(color: .green.opacity(0.3), radius: 8, x: 0, y: 4)
-                        }
-                        .foregroundColor(.white)
+                    // Already Pro - show status
+                    HStack(spacing: 8) {
+                        Image(systemName: "checkmark.seal.fill")
+                            .font(.system(size: 16))
+                            .foregroundColor(.green)
+                        Text("You have Pro access!")
+                            .font(.system(size: 15, weight: .medium))
+                            .foregroundColor(.green)
                     }
-                    .buttonStyle(.plain)
                     .padding(.horizontal, 24)
                 } else {
                     // Not Pro - Purchase button
@@ -639,13 +596,6 @@ struct ProFeaturesWelcomePage: View {
                                 .foregroundColor(.blue)
                         }
                         .buttonStyle(.plain)
-                        
-                        Button(action: dismissAction) {
-                            Text("Maybe later")
-                                .font(.system(size: 13))
-                                .foregroundColor(.secondary)
-                        }
-                        .buttonStyle(.plain)
                     }
                     .padding(.horizontal, 24)
                 }
@@ -656,3 +606,266 @@ struct ProFeaturesWelcomePage: View {
         }
     }
 }
+
+// MARK: - Sign In Welcome Page
+
+struct SignInWelcomePage: View {
+    let dismissAction: () -> Void
+    @StateObject private var authManager = AuthManager.shared
+    
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 32) {
+                // Header
+                VStack(spacing: 16) {
+                    ZStack {
+                        Circle()
+                            .fill(
+                                LinearGradient(
+                                    colors: [.blue.opacity(0.3), .purple.opacity(0.3)],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .frame(width: 100, height: 100)
+                            .blur(radius: 25)
+                        
+                        Image(systemName: "person.circle.fill")
+                            .font(.system(size: 60))
+                            .foregroundStyle(
+                                LinearGradient(
+                                    colors: [.blue, .purple],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                    }
+                    
+                    VStack(spacing: 8) {
+                        Text("Sign In")
+                            .font(.system(size: 36, weight: .bold, design: .rounded))
+                            .foregroundStyle(
+                                LinearGradient(
+                                    colors: [.blue, .purple],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                        
+                        if authManager.isSignedIn {
+                            HStack(spacing: 6) {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .font(.system(size: 14))
+                                    .foregroundColor(.green)
+                                Text("Signed in as \(authManager.displayName)")
+                                    .font(.system(size: 16, weight: .medium))
+                                    .foregroundColor(.green)
+                            }
+                        } else {
+                            Text("Sign in to sync your data across devices")
+                                .font(.system(size: 16))
+                                .foregroundColor(.secondary)
+                                .multilineTextAlignment(.center)
+                        }
+                    }
+                }
+                .padding(.top, 20)
+                
+                // Benefits of signing in
+                if !authManager.isSignedIn {
+                    VStack(alignment: .leading, spacing: 16) {
+                        FeatureRow(
+                            icon: "icloud.fill",
+                            iconColor: .blue,
+                            title: "Sync Across Devices",
+                            description: "Your bookmarks and settings sync via iCloud"
+                        )
+                        
+                        FeatureRow(
+                            icon: "person.badge.key.fill",
+                            iconColor: .purple,
+                            title: "Secure & Private",
+                            description: "Sign in with Apple keeps your data private"
+                        )
+                        
+                        FeatureRow(
+                            icon: "arrow.clockwise.icloud.fill",
+                            iconColor: .green,
+                            title: "Backup & Restore",
+                            description: "Never lose your saved links again"
+                        )
+                    }
+                    .padding(.horizontal, 24)
+                }
+                
+                // Authentication buttons
+                VStack(spacing: 16) {
+                    if authManager.isSignedIn {
+                        // Already signed in - Get Started button
+                        Button(action: dismissAction) {
+                            HStack(spacing: 10) {
+                                Text("Get Started")
+                                    .font(.system(size: 16, weight: .semibold))
+                                Image(systemName: "arrow.right")
+                                    .font(.system(size: 14, weight: .semibold))
+                            }
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 50)
+                            .background {
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(
+                                        LinearGradient(
+                                            colors: [.green, .green.opacity(0.8)],
+                                            startPoint: .leading,
+                                            endPoint: .trailing
+                                        )
+                                    )
+                                    .shadow(color: .green.opacity(0.3), radius: 8, x: 0, y: 4)
+                            }
+                            .foregroundColor(.white)
+                        }
+                        .buttonStyle(.plain)
+                    } else {
+                        // Touch ID / Face ID button (if available)
+                        if authManager.canUseTouchID {
+                            Button(action: {
+                                Task {
+                                    _ = await authManager.authenticateWithBiometrics()
+                                    if authManager.isSignedIn {
+                                        dismissAction()
+                                    }
+                                }
+                            }) {
+                                HStack(spacing: 12) {
+                                    Image(systemName: authManager.biometricIcon)
+                                        .font(.system(size: 20, weight: .medium))
+                                    Text("Sign in with \(authManager.biometricName)")
+                                        .font(.system(size: 15, weight: .semibold))
+                                }
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 50)
+                                .background {
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .fill(
+                                            LinearGradient(
+                                                colors: [.blue, .purple],
+                                                startPoint: .leading,
+                                                endPoint: .trailing
+                                            )
+                                        )
+                                        .shadow(color: .blue.opacity(0.3), radius: 8, x: 0, y: 4)
+                                }
+                                .foregroundColor(.white)
+                            }
+                            .buttonStyle(.plain)
+                            .disabled(authManager.isLoading)
+                            
+                            // Divider
+                            HStack {
+                                Rectangle()
+                                    .fill(Color.secondary.opacity(0.3))
+                                    .frame(height: 1)
+                                Text("or")
+                                    .font(.system(size: 12))
+                                    .foregroundColor(.secondary)
+                                Rectangle()
+                                    .fill(Color.secondary.opacity(0.3))
+                                    .frame(height: 1)
+                            }
+                        }
+                        
+                        // Sign in with Apple button
+                        SignInWithAppleButton(
+                            onRequest: { request in
+                                request.requestedScopes = [.fullName, .email]
+                            },
+                            onCompletion: { result in
+                                handleSignInResult(result)
+                            }
+                        )
+                        .signInWithAppleButtonStyle(.white)
+                        .frame(height: 50)
+                        .cornerRadius(10)
+                        
+                        // Error message
+                        if let errorMessage = authManager.errorMessage {
+                            Text(errorMessage)
+                                .font(.system(size: 12))
+                                .foregroundColor(.red)
+                                .multilineTextAlignment(.center)
+                        }
+                        
+                        // Loading indicator
+                        if authManager.isLoading {
+                            ProgressView()
+                                .controlSize(.small)
+                        }
+                    }
+                }
+                .padding(.horizontal, 24)
+                
+                // Footer
+                if !authManager.isSignedIn {
+                    Text("Your credentials are stored securely on this device.")
+                        .font(.system(size: 11))
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 24)
+                }
+                
+                Spacer()
+                    .frame(height: 32)
+            }
+        }
+        .onChange(of: authManager.isSignedIn) { _, isSignedIn in
+            if isSignedIn {
+                // Auto-dismiss after successful sign in
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    dismissAction()
+                }
+            }
+        }
+    }
+    
+    private func handleSignInResult(_ result: Result<ASAuthorization, Error>) {
+        switch result {
+        case .success(let authorization):
+            if let credential = authorization.credential as? ASAuthorizationAppleIDCredential {
+                let userIdentifier = credential.user
+                let email = credential.email
+                
+                var fullName: String? = nil
+                if let nameComponents = credential.fullName {
+                    let formatter = PersonNameComponentsFormatter()
+                    fullName = formatter.string(from: nameComponents)
+                }
+                
+                // Save credentials through AuthManager
+                Task { @MainActor in
+                    AuthManager.shared.isSignedIn = true
+                    UserDefaults.standard.set(userIdentifier, forKey: "appleUserIdentifier")
+                    UserDefaults.standard.set(true, forKey: "hasPreviouslySignedIn")
+                    if let email = email {
+                        UserDefaults.standard.set(email, forKey: "appleUserEmail")
+                    }
+                    if let name = fullName {
+                        UserDefaults.standard.set(name, forKey: "appleUserName")
+                    }
+                }
+            }
+        case .failure(let error):
+            if let authError = error as? ASAuthorizationError {
+                switch authError.code {
+                case .canceled:
+                    // User canceled, no error
+                    break
+                default:
+                    Task { @MainActor in
+                        AuthManager.shared.errorMessage = "Sign in failed. Please try again."
+                    }
+                }
+            }
+        }
+    }
+}
+
