@@ -28,57 +28,46 @@ class EventMonitor {
     }
 }
 
-@main
-struct L1nkApp: App {
-    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+/// Shared holder for Sparkle updater components
+class SparkleManager {
+    static let shared = SparkleManager()
     
-    private let updaterController: SPUStandardUpdaterController
-    private let updaterDelegate: UpdaterDelegate
-    private let updateChecker: UpdateChecker
+    let updaterController: SPUStandardUpdaterController
+    let updaterDelegate: UpdaterDelegate
     
-    init() {
+    private init() {
         // Create updater delegate for handling update events
         let delegate = UpdaterDelegate()
         
         // Initialize updater controller with delegate
-        // Set startingUpdater to false to avoid Sparkle's automatic checking
-        // We'll handle checking manually through UpdateChecker to avoid duplicate checks
+        // Set startingUpdater to true to let Sparkle handle automatic updates
         let controller = SPUStandardUpdaterController(
-            startingUpdater: false,
+            startingUpdater: true,
             updaterDelegate: delegate,
             userDriverDelegate: nil
         )
         
-        // Configure update checker
-        let updateConfig = UpdateChecker.Configuration(
-            checkOnLaunch: true,           // Check on launch
-            launchCheckDelay: 1.0,         // Wait 1 second after launch
-            checkPeriodically: true,       // Check automatically every hour
-            updateCheckInterval: 3600,     // 1 hour = 3600 seconds
-            checkOnBecomeActive: false     // Don't check when app becomes active
-        )
-        
-        // Create UpdateChecker (pass delegate for status tracking)
-        let checker = UpdateChecker(
-            updater: controller.updater,
-            updaterDelegate: delegate,
-            configuration: updateConfig
-        )
-        
-        // Assign to properties
         self.updaterDelegate = delegate
         self.updaterController = controller
-        self.updateChecker = checker
-        
-        // Store references in AppDelegate for access
-        // We'll set this after AppDelegate is created
-        DispatchQueue.main.async {
-            if let appDelegate = NSApp.delegate as? AppDelegate {
-                appDelegate.updaterController = controller
-                appDelegate.updaterDelegate = delegate
-                appDelegate.updateChecker = checker
-            }
+    }
+    
+    /// Check for updates manually (user-initiated)
+    func checkForUpdates() {
+        let updater = updaterController.updater
+        // Only check if not already checking
+        if updater.canCheckForUpdates {
+            updater.checkForUpdates()
         }
+    }
+}
+
+@main
+struct L1nkApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+    
+    init() {
+        // Initialize SparkleManager (triggers singleton creation)
+        _ = SparkleManager.shared
     }
 
     var body: some Scene {
@@ -87,7 +76,7 @@ struct L1nkApp: App {
         }
         .commands {
             CommandGroup(after: .appInfo) {
-                CheckForUpdatesView(updater: updaterController.updater)
+                CheckForUpdatesView(updater: SparkleManager.shared.updaterController.updater)
             }
         }
     }
@@ -121,21 +110,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     var eventMonitor: EventMonitor?
     var focusTimer: Timer?
     
-    // Sparkle updater (set by L1nkApp)
-    var updaterController: SPUStandardUpdaterController?
-    var updaterDelegate: UpdaterDelegate?
-    var updateChecker: UpdateChecker?
-    
-    override init() {
-        super.init()
-    }
-    
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Service
         NSApp.servicesProvider = self
         
-        // Check for updates on launch (handled by UpdateChecker)
-        updateChecker?.checkOnLaunch()
+        // Sparkle handles automatic update checking via startingUpdater: true
         
         // Show welcome window on first launch
         checkAndShowWelcome()

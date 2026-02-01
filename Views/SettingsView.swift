@@ -169,13 +169,30 @@ struct SettingsView: View {
                                             .font(.system(size: 11))
                                             .foregroundColor(.green)
                                     case .noUpdateAvailable:
-                                        Text("You're up to date")
-                                            .font(.system(size: 11))
-                                            .foregroundColor(.secondary)
+                                        HStack(spacing: 6) {
+                                            Image(systemName: "checkmark.circle.fill")
+                                                .font(.system(size: 11))
+                                                .foregroundColor(.green)
+                                            Text("You're up to date!")
+                                                .font(.system(size: 11))
+                                                .foregroundColor(.green)
+                                        }
                                     case .error(let message):
-                                        Text("Error: \(message)")
-                                            .font(.system(size: 11))
-                                            .foregroundColor(.red)
+                                        // Check if it's actually a "no update" message disguised as an error
+                                        if message.lowercased().contains("up to date") || message.lowercased().contains("latest") {
+                                            HStack(spacing: 6) {
+                                                Image(systemName: "checkmark.circle.fill")
+                                                    .font(.system(size: 11))
+                                                    .foregroundColor(.green)
+                                                Text("You're up to date!")
+                                                    .font(.system(size: 11))
+                                                    .foregroundColor(.green)
+                                            }
+                                        } else {
+                                            Text("Error: \(message)")
+                                                .font(.system(size: 11))
+                                                .foregroundColor(.red)
+                                        }
                                     case .idle:
                                         EmptyView()
                                     }
@@ -268,19 +285,31 @@ struct SettingsView: View {
         }
         .frame(width: 400, height: 550)
         .background(Color.clear)
-        .onAppear {
-            // Connect update checker and updater when view appears
-            if let appDelegate = NSApp.delegate as? AppDelegate {
-                if let updateChecker = appDelegate.updateChecker {
-                    viewModel.setUpdateChecker(updateChecker)
-                }
-                if let updaterController = appDelegate.updaterController {
-                    viewModel.setUpdater(updaterController.updater)
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("UpdateAvailable"))) { _ in
+            viewModel.setUpdateAvailable(true)
+            viewModel.updateStatus = .updateAvailable
+            viewModel.isCheckingForUpdates = false
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("NoUpdateAvailable"))) { _ in
+            viewModel.updateStatus = .noUpdateAvailable
+            viewModel.isCheckingForUpdates = false
+            // Clear after 3 seconds
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                if viewModel.updateStatus == .noUpdateAvailable {
+                    viewModel.updateStatus = .idle
                 }
             }
         }
-        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("UpdateAvailable"))) { _ in
-            viewModel.setUpdateAvailable(true)
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("UpdateCheckError"))) { notification in
+            let errorMessage = notification.userInfo?["error"] as? String ?? "Unknown error"
+            viewModel.updateStatus = .error(errorMessage)
+            viewModel.isCheckingForUpdates = false
+            // Clear after 5 seconds
+            DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+                if case .error = viewModel.updateStatus {
+                    viewModel.updateStatus = .idle
+                }
+            }
         }
         .alert(isPresented: $viewModel.showPermissionAlert) {
             Alert(

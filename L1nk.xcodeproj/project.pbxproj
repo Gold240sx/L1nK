@@ -8,7 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		24D830D0633A4F6DFB14ED5A /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 929F2717CA3886662E38CDEC /* Sparkle */; };
-		A1B2C3D4E5F6A7B8C9D0E1F2 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F3029DEA6C006E5FCC9B29C1 /* Assets.xcassets */; };
 		3D44CA6255A2F618611A647D /* LinkService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D77B7B9890DBF8689ED01E83 /* LinkService.swift */; };
 		3D5DD4E18152FB77477C31EC /* CheckForUpdatesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26ECE469AD2F32E1A508087D /* CheckForUpdatesView.swift */; };
 		3E59A9E202F16C400C89AC51 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E1C70060EE1AF49AADB9588 /* ContentView.swift */; };
@@ -16,6 +15,7 @@
 		80256BF2054726CB56E028C9 /* WelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48EE5136ACC697A5051B06F9 /* WelcomeView.swift */; };
 		8FA1DE5CED56D99C6B552C01 /* CheckForUpdatesViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4965F8C24B9F4036831A2A36 /* CheckForUpdatesViewModel.swift */; };
 		910043C6C2EDAA7404A055C1 /* L1nkApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 859441DE90FADA9FA8A626F8 /* L1nkApp.swift */; };
+		A1B2C3D4E5F6A7B8C9D0E1F2 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F3029DEA6C006E5FCC9B29C1 /* Assets.xcassets */; };
 		AE1A6D88DF2FDA01EC498E8A /* ContentViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1AA1FDA65637EA9116FE8E10 /* ContentViewModel.swift */; };
 		B261ABF326FB80F145039C46 /* UpdaterDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C22322012B16DB9B045DB1F /* UpdaterDelegate.swift */; };
 		BD591B7D1B9700E2C4704283 /* SettingsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0168B93B2BCA09C788253179 /* SettingsViewModel.swift */; };
@@ -121,17 +121,6 @@
 		};
 /* End PBXGroup section */
 
-/* Begin PBXResourcesBuildPhase section */
-		F1E2D3C4B5A6978800112233 /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				A1B2C3D4E5F6A7B8C9D0E1F2 /* Assets.xcassets in Resources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-/* End PBXResourcesBuildPhase section */
-
 /* Begin PBXNativeTarget section */
 		4C85B44AD8AE8967AB507DB9 /* L1nk */ = {
 			isa = PBXNativeTarget;
@@ -187,6 +176,17 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		F1E2D3C4B5A6978800112233 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1B2C3D4E5F6A7B8C9D0E1F2 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		F9A3286A612F1F3B8509E6E7 /* Sources */ = {
@@ -342,9 +342,20 @@
 				CODE_SIGN_ENTITLEMENTS = L1nk.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 0.9;
+				CURRENT_PROJECT_VERSION = 1.0;
 				DEVELOPMENT_TEAM = 3M7PED79H5;
+				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_INCOMING_NETWORK_CONNECTIONS = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = NO;
+				ENABLE_RESOURCE_ACCESS_BLUETOOTH = NO;
+				ENABLE_RESOURCE_ACCESS_CALENDARS = NO;
+				ENABLE_RESOURCE_ACCESS_CAMERA = NO;
+				ENABLE_RESOURCE_ACCESS_CONTACTS = NO;
+				ENABLE_RESOURCE_ACCESS_LOCATION = NO;
+				ENABLE_RESOURCE_ACCESS_PRINTING = NO;
+				ENABLE_RESOURCE_ACCESS_USB = NO;
 				INFOPLIST_FILE = Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = L1nK;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
@@ -353,7 +364,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 12.0;
-				MARKETING_VERSION = 0.9;
+				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.michaelMartell.l1nk;
 				SDKROOT = macosx;
 				SWIFT_VERSION = 5.0;
@@ -367,9 +378,20 @@
 				CODE_SIGN_ENTITLEMENTS = L1nk.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 0.9;
+				CURRENT_PROJECT_VERSION = 1.0;
 				DEVELOPMENT_TEAM = 3M7PED79H5;
+				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_INCOMING_NETWORK_CONNECTIONS = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = NO;
+				ENABLE_RESOURCE_ACCESS_BLUETOOTH = NO;
+				ENABLE_RESOURCE_ACCESS_CALENDARS = NO;
+				ENABLE_RESOURCE_ACCESS_CAMERA = NO;
+				ENABLE_RESOURCE_ACCESS_CONTACTS = NO;
+				ENABLE_RESOURCE_ACCESS_LOCATION = NO;
+				ENABLE_RESOURCE_ACCESS_PRINTING = NO;
+				ENABLE_RESOURCE_ACCESS_USB = NO;
 				INFOPLIST_FILE = Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = L1nK;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
@@ -378,7 +400,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 12.0;
-				MARKETING_VERSION = 0.9;
+				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.michaelMartell.l1nk;
 				SDKROOT = macosx;
 				SWIFT_VERSION = 5.0;

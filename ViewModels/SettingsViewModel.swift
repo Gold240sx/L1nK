@@ -41,71 +41,36 @@ class SettingsViewModel: ObservableObject {
         }
     }
     
-    private var updateChecker: UpdateChecker?
-    private var updater: SPUUpdater?
-    
-    func setUpdateChecker(_ checker: UpdateChecker?) {
-        self.updateChecker = checker
-    }
-    
-    func setUpdater(_ updater: SPUUpdater?) {
-        self.updater = updater
-        checkForUpdateAvailability()
-    }
-    
-    private func checkForUpdateAvailability() {
-        // Check if updater has found an update
-        // Note: Sparkle doesn't expose a direct property for this, so we'll track it via delegate callbacks
-        // For now, we'll check periodically or when settings view appears
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            // This is a placeholder - we'll update this when update is found via delegate
-        }
-    }
-    
     func setUpdateAvailable(_ available: Bool) {
         hasUpdateAvailable = available
     }
     
     func checkForUpdates() {
         guard !isCheckingForUpdates else { return }
+        
+        // Check if Sparkle can check for updates (not already in progress)
+        let updater = SparkleManager.shared.updaterController.updater
+        guard updater.canCheckForUpdates else {
+            // Already checking or session in progress
+            return
+        }
+        
         isCheckingForUpdates = true
         updateStatus = .checking
         
-        // Set callback in delegate to receive status updates
-        if let appDelegate = NSApp.delegate as? AppDelegate,
-           let updaterDelegate = appDelegate.updaterDelegate {
-            updaterDelegate.setUpdateStatusCallback { [weak self] status in
-                DispatchQueue.main.async {
-                    guard let self = self else { return }
-                    self.isCheckingForUpdates = false
-                    switch status {
-                    case .checking:
-                        self.updateStatus = .checking
-                    case .updateAvailable:
-                        self.updateStatus = .updateAvailable
-                        self.hasUpdateAvailable = true
-                    case .noUpdateAvailable:
-                        self.updateStatus = .noUpdateAvailable
-                        // Clear message after 3 seconds
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-                            if self.updateStatus == .noUpdateAvailable {
-                                self.updateStatus = .idle
-                            }
-                        }
-                    case .error(let errorMessage):
-                        self.updateStatus = .error(errorMessage)
-                        // Clear error after 5 seconds
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
-                            if case .error = self.updateStatus {
-                                self.updateStatus = .idle
-                            }
-                        }
-                    }
+        SparkleManager.shared.checkForUpdates()
+        
+        // Timeout after 30 seconds if no response
+        DispatchQueue.main.asyncAfter(deadline: .now() + 30.0) { [weak self] in
+            guard let self = self, self.updateStatus == .checking else { return }
+            self.isCheckingForUpdates = false
+            self.updateStatus = .error("Check timed out")
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                if case .error = self.updateStatus {
+                    self.updateStatus = .idle
                 }
             }
         }
-        
-        updateChecker?.checkForUpdates()
     }
     
     func toggleLaunchAtLogin(enabled: Bool) {

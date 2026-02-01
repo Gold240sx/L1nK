@@ -4,7 +4,6 @@ import Sparkle
 /// Manages automatic update checking behavior
 class UpdateChecker {
     private let updater: SPUUpdater
-    private let updaterDelegate: UpdaterDelegate
     
     /// Configuration for update checking behavior
     struct Configuration {
@@ -26,9 +25,8 @@ class UpdateChecker {
     
     private let configuration: Configuration
     
-    init(updater: SPUUpdater, updaterDelegate: UpdaterDelegate, configuration: Configuration = Configuration()) {
+    init(updater: SPUUpdater, configuration: Configuration = Configuration()) {
         self.updater = updater
-        self.updaterDelegate = updaterDelegate
         self.configuration = configuration
         
         // Defer setup to avoid accessing updater during initialization
@@ -60,9 +58,6 @@ class UpdateChecker {
         guard configuration.checkOnLaunch else { return }
         
         DispatchQueue.main.asyncAfter(deadline: .now() + configuration.launchCheckDelay) {
-            // Mark as automatic check (silent)
-            self.updaterDelegate.setManualCheck(false)
-            // Use checkForUpdatesInBackground for silent checks
             self.updater.checkForUpdatesInBackground()
         }
     }
@@ -70,13 +65,11 @@ class UpdateChecker {
     /// Checks for updates when app becomes active (silent)
     func checkOnBecomeActive() {
         guard configuration.checkOnBecomeActive else { return }
-        updaterDelegate.setManualCheck(false)
         updater.checkForUpdatesInBackground()
     }
     
     /// Manually check for updates (always shows UI)
     func checkForUpdates() {
-        updaterDelegate.setManualCheck(true)
         updater.checkForUpdates()
     }
 }
