@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 import AppKit
 import Sparkle
 
@@ -66,6 +67,23 @@ struct L1nkApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     
     init() {
+        // Check for existing instance and activate it instead of launching a duplicate
+        let runningApps = NSRunningApplication.runningApplications(withBundleIdentifier: Bundle.main.bundleIdentifier ?? "")
+        let otherInstances = runningApps.filter { $0 != NSRunningApplication.current }
+        
+        if let existingInstance = otherInstances.first {
+            // Another instance is running - activate it and terminate this one
+            existingInstance.activate(options: [.activateAllWindows])
+            
+            // If we were launched with files to open, pass them to the existing instance
+            // (macOS handles this automatically via AppleEvents)
+            
+            // Terminate this duplicate instance
+            DispatchQueue.main.async {
+                NSApp.terminate(nil)
+            }
+        }
+        
         // Initialize SparkleManager (triggers singleton creation)
         _ = SparkleManager.shared
     }
@@ -102,26 +120,82 @@ class WelcomeWindow: NSWindow {
     }
 }
 
+class AuthWindow: NSWindow {
+    override var canBecomeKey: Bool {
+        return true
+    }
+    
+    override var canBecomeMain: Bool {
+        return true
+    }
+}
+
 class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
-    var statusItem: NSStatusItem!
+    var statusItem: NSStatusItem?
     var popover: NSPopover!
     var settingsWindow: NSWindow?
     var welcomeWindow: NSWindow?
+    var authWindow: NSWindow?
+    var subscriptionWindow: NSWindow?
     var eventMonitor: EventMonitor?
     var focusTimer: Timer?
     
+    /// Track if we've already set up the status item
+    private var hasSetupStatusItem = false
+    
+    /// SwiftData model container for persistent tabs
+    var modelContainer: ModelContainer?
+    
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Prevent duplicate setup
+        guard !hasSetupStatusItem else { return }
+        hasSetupStatusItem = true
+        // Initialize SwiftData ModelContainer
+        // Try CloudKit first, fall back to local-only if CloudKit isn't configured
+        do {
+            let schema = Schema([PersistentTab.self, TabFolder.self])
+            
+            // Try with CloudKit enabled
+            let cloudKitConfig = ModelConfiguration(
+                schema: schema,
+                isStoredInMemoryOnly: false,
+                cloudKitDatabase: .automatic
+            )
+            
+            do {
+                modelContainer = try ModelContainer(for: schema, configurations: [cloudKitConfig])
+                print("ModelContainer created with CloudKit sync enabled")
+            } catch {
+                // CloudKit failed, fall back to local-only storage
+                print("CloudKit not available, using local storage: \(error.localizedDescription)")
+                let localConfig = ModelConfiguration(
+                    schema: schema,
+                    isStoredInMemoryOnly: false,
+                    cloudKitDatabase: .none
+                )
+                modelContainer = try ModelContainer(for: schema, configurations: [localConfig])
+                print("ModelContainer created with local storage only")
+            }
+            
+            // Configure TabManager with the model context
+            if let context = modelContainer?.mainContext {
+                TabManager.shared.configure(with: context)
+            }
+        } catch {
+            print("Failed to create ModelContainer: \(error)")
+        }
         // Service
         NSApp.servicesProvider = self
         
         // Sparkle handles automatic update checking via startingUpdater: true
+        // Clerk is configured and loaded via .task modifier in ContentView
         
         // Show welcome window on first launch
         checkAndShowWelcome()
         
         // Setup Menu Bar Item
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        if let button = statusItem.button {
+        if let button = statusItem?.button {
             button.image = NSImage(systemSymbolName: "link", accessibilityDescription: "L1nk")
             button.action = #selector(togglePopover(_:))
         }
@@ -184,6 +258,34 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
             self,
             selector: #selector(handleUpdateAvailable),
             name: NSNotification.Name("UpdateAvailable"),
+            object: nil
+        )
+        
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(showAuthWindow),
+            name: NSNotification.Name("ShowAuthWindow"),
+            object: nil
+        )
+        
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(closeAuthWindow),
+            name: NSNotification.Name("CloseAuthWindow"),
+            object: nil
+        )
+        
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(showSubscriptionWindow),
+            name: NSNotification.Name("ShowSubscriptionView"),
+            object: nil
+        )
+        
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(closeSubscriptionWindow),
+            name: NSNotification.Name("CloseSubscriptionWindow"),
             object: nil
         )
         
@@ -333,27 +435,133 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         welcomeWindow = nil
     }
     
+    @objc func showAuthWindow() {
+        // Close popover first
+        closePopover()
+        
+        // Create window if it doesn't exist
+        if authWindow == nil {
+            let contentView = SignInView()
+            let hostingView = NSHostingController(rootView: contentView)
+            
+            authWindow = AuthWindow(
+                contentRect: NSRect(x: 0, y: 0, width: 420, height: 520),
+                styleMask: [.borderless],
+                backing: .buffered,
+                defer: false
+            )
+            authWindow?.center()
+            authWindow?.isReleasedWhenClosed = false
+            authWindow?.collectionBehavior = [.moveToActiveSpace]
+            
+            // Create visual effect view for glass background
+            let visualEffectView = NSVisualEffectView()
+            visualEffectView.material = .hudWindow
+            visualEffectView.blendingMode = .behindWindow
+            visualEffectView.state = .active
+            visualEffectView.frame = NSRect(x: 0, y: 0, width: 420, height: 520)
+            visualEffectView.wantsLayer = true
+            visualEffectView.layer?.cornerRadius = 16
+            visualEffectView.layer?.masksToBounds = true
+            
+            // Add hosting view as subview
+            hostingView.view.frame = visualEffectView.bounds
+            hostingView.view.autoresizingMask = [.width, .height]
+            visualEffectView.addSubview(hostingView.view)
+            
+            authWindow?.contentView = visualEffectView
+            authWindow?.hasShadow = true
+            authWindow?.isMovableByWindowBackground = true
+            authWindow?.level = .floating
+            authWindow?.isOpaque = false
+            authWindow?.backgroundColor = .clear
+            authWindow?.isMovable = true
+        }
+        
+        // Show and activate the window
+        authWindow?.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+    }
+    
+    @objc func closeAuthWindow() {
+        authWindow?.close()
+        authWindow = nil
+    }
+    
+    @objc func showSubscriptionWindow() {
+        // Close popover first
+        closePopover()
+        
+        // Create window if it doesn't exist
+        if subscriptionWindow == nil {
+            let contentView = SubscriptionView()
+            let hostingView = NSHostingController(rootView: contentView)
+            
+            subscriptionWindow = AuthWindow(
+                contentRect: NSRect(x: 0, y: 0, width: 380, height: 580),
+                styleMask: [.borderless],
+                backing: .buffered,
+                defer: false
+            )
+            subscriptionWindow?.center()
+            subscriptionWindow?.isReleasedWhenClosed = false
+            subscriptionWindow?.collectionBehavior = [.moveToActiveSpace]
+            
+            // Create visual effect view for glass background
+            let visualEffectView = NSVisualEffectView()
+            visualEffectView.material = .hudWindow
+            visualEffectView.blendingMode = .behindWindow
+            visualEffectView.state = .active
+            visualEffectView.frame = NSRect(x: 0, y: 0, width: 380, height: 580)
+            visualEffectView.wantsLayer = true
+            visualEffectView.layer?.cornerRadius = 16
+            visualEffectView.layer?.masksToBounds = true
+            
+            // Add hosting view as subview
+            hostingView.view.frame = visualEffectView.bounds
+            hostingView.view.autoresizingMask = [.width, .height]
+            visualEffectView.addSubview(hostingView.view)
+            
+            subscriptionWindow?.contentView = visualEffectView
+            subscriptionWindow?.hasShadow = true
+            subscriptionWindow?.isMovableByWindowBackground = true
+            subscriptionWindow?.level = .floating
+            subscriptionWindow?.isOpaque = false
+            subscriptionWindow?.backgroundColor = .clear
+            subscriptionWindow?.isMovable = true
+        }
+        
+        // Show and activate the window
+        subscriptionWindow?.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+    }
+    
+    @objc func closeSubscriptionWindow() {
+        subscriptionWindow?.close()
+        subscriptionWindow = nil
+    }
+    
     @objc func handleUpdateAvailable(_ notification: Notification) {
         // This notification is handled by SettingsView via onReceive
         // We can add additional logic here if needed
     }
     
     @objc func togglePopover(_ sender: AnyObject?) {
-        if let button = statusItem.button {
-            if popover.isShown {
-                popover.performClose(sender)
-                eventMonitor?.stop()
-                stopFocusTimer()
-            } else {
-                popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
-                NSApp.activate(ignoringOtherApps: true)
-                // Ensure popover window is key to keep it tinted
-                DispatchQueue.main.async {
-                    self.keepPopoverFocused()
-                    self.startFocusTimer()
-                }
-                startEventMonitor()
+        guard let statusItem = statusItem, let button = statusItem.button else { return }
+        
+        if popover.isShown {
+            popover.performClose(sender)
+            eventMonitor?.stop()
+            stopFocusTimer()
+        } else {
+            popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+            NSApp.activate(ignoringOtherApps: true)
+            // Ensure popover window is key to keep it tinted
+            DispatchQueue.main.async {
+                self.keepPopoverFocused()
+                self.startFocusTimer()
             }
+            startEventMonitor()
         }
     }
     
@@ -441,10 +649,32 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     }
 
     func application(_ application: NSApplication, open urls: [URL]) {
-        guard let fileURL = urls.first else { return }
-        
-        // Handle the file
-        handleFile(at: fileURL)
+        for url in urls {
+            // Handle file URLs (double-clicking .l1nk files)
+            if url.isFileURL && url.pathExtension.lowercased() == "l1nk" {
+                handleFile(at: url)
+            }
+        }
+    }
+    
+    /// Fallback for older file opening mechanism
+    func application(_ sender: NSApplication, openFile filename: String) -> Bool {
+        let url = URL(fileURLWithPath: filename)
+        if url.pathExtension.lowercased() == "l1nk" {
+            handleFile(at: url)
+            return true
+        }
+        return false
+    }
+    
+    /// Handle files passed at launch
+    func application(_ application: NSApplication, openFiles filenames: [String]) {
+        for filename in filenames {
+            let url = URL(fileURLWithPath: filename)
+            if url.pathExtension.lowercased() == "l1nk" {
+                handleFile(at: url)
+            }
+        }
     }
     
     // MARK: - Service Handler

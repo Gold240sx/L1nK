@@ -10,9 +10,12 @@ class ContentViewModel: ObservableObject {
     @Published var isProcessing: Bool = false
     @Published var showPermissionAlert: Bool = false
     @Published var lastError: String = ""
+    @Published var lastSavedURL: URL? = nil
+    @Published var showFinderButton: Bool = false
     
     private let linkService = LinkService.shared
     private let iconService = IconService.shared
+    private var finderButtonTimer: Timer?
     
     func createFromClipboard() {
         guard let clipboardString = NSPasteboard.general.string(forType: .string) else {
@@ -54,9 +57,12 @@ class ContentViewModel: ObservableObject {
     }
     
     private func finalizeCreation(url: URL, title: String?) {
-        let filename = linkService.generateFilename(for: url, title: title)
-        let iconType = linkService.detectIconType(for: url)
-        let content = url.absoluteString
+        // Clean tracking parameters from the URL
+        let cleanedURL = linkService.cleanURL(url)
+        
+        let filename = linkService.generateFilename(for: cleanedURL, title: title)
+        let iconType = linkService.detectIconType(for: cleanedURL)
+        let content = cleanedURL.absoluteString
         
         if askToSave {
             NSApp.activate(ignoringOtherApps: true)
@@ -69,7 +75,7 @@ class ContentViewModel: ObservableObject {
     func saveWithDialog(filename: String, content: String, iconType: IconType) {
         let savePanel = NSSavePanel()
         savePanel.nameFieldStringValue = filename
-        savePanel.allowedContentTypes = [UTType(exportedAs: "com.yourcompany.l1nk")]
+        savePanel.allowedContentTypes = [UTType(exportedAs: "com.michaelMartell.l1nk.link")]
         savePanel.canCreateDirectories = true
         
         if !defaultSaveDirectory.isEmpty {
@@ -93,15 +99,8 @@ class ContentViewModel: ObservableObject {
             if response == .OK, let targetURL = savePanel.url {
                 do {
                     try content.write(to: targetURL, atomically: true, encoding: .utf8)
-                    iconService.applyIcon(type: iconType, to: targetURL)
-                    withAnimation {
-                        self.message = "✓ Saved!"
-                    }
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                        withAnimation {
-                            self.message = ""
-                        }
-                    }
+                    self.iconService.applyIcon(type: iconType, to: targetURL)
+                    self.showSaveSuccess(url: targetURL)
                 } catch {
                     self.lastError = error.localizedDescription
                     self.showPermissionAlert = true
@@ -139,20 +138,55 @@ class ContentViewModel: ObservableObject {
         do {
             try content.write(to: uniqueURL, atomically: true, encoding: .utf8)
             iconService.applyIcon(type: iconType, to: uniqueURL)
-            withAnimation {
-                message = "✓ Saved to: \(uniqueURL.lastPathComponent)"
-            }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-                withAnimation {
-                    self.message = ""
-                }
-            }
+            showSaveSuccess(url: uniqueURL)
         } catch {
             lastError = error.localizedDescription
             showPermissionAlert = true
             withAnimation {
                 message = "Error: \(error.localizedDescription)"
             }
+        }
+    }
+    
+    // MARK: - Show in Finder
+    
+    private func showSaveSuccess(url: URL) {
+        lastSavedURL = url
+        
+        withAnimation {
+            message = "✓ Saved: \(url.lastPathComponent)"
+            showFinderButton = true
+        }
+        
+        // Cancel any existing timer
+        finderButtonTimer?.invalidate()
+        
+        // Hide the button after 10 seconds
+        finderButtonTimer = Timer.scheduledTimer(withTimeInterval: 10.0, repeats: false) { [weak self] _ in
+            DispatchQueue.main.async {
+                withAnimation {
+                    self?.showFinderButton = false
+                    self?.message = ""
+                }
+            }
+        }
+    }
+    
+    func showInFinder() {
+        guard let url = lastSavedURL else { return }
+        NSWorkspace.shared.activateFileViewerSelecting([url])
+        
+        // Hide button after clicking
+        withAnimation {
+            showFinderButton = false
+        }
+    }
+    
+    func dismissFinderButton() {
+        finderButtonTimer?.invalidate()
+        withAnimation {
+            showFinderButton = false
+            message = ""
         }
     }
 }

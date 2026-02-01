@@ -247,6 +247,80 @@ struct SettingsView: View {
                     Divider()
                         .padding(.horizontal, 16)
                     
+                    // Icons Section
+                    SettingsSectionContent(title: "File Icons") {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Toggle("Use generic icons (App Store compliant)", isOn: $viewModel.useGenericIcons)
+                                .toggleStyle(.switch)
+                                .font(.system(size: 13))
+                            
+                            Text("When enabled, uses SF Symbols instead of branded logos. Required for App Store distribution.")
+                                .font(.system(size: 11))
+                                .foregroundColor(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                    
+                    Divider()
+                        .padding(.horizontal, 16)
+                    
+                    // Pro Section
+                    SettingsSectionContent(title: "Pro") {
+                        VStack(alignment: .leading, spacing: 12) {
+                            HStack {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Status")
+                                        .font(.system(size: 11))
+                                        .foregroundColor(.secondary)
+                                    
+                                    if ProManager.shared.isPro {
+                                        HStack(spacing: 6) {
+                                            Image(systemName: "checkmark.circle.fill")
+                                                .font(.system(size: 12))
+                                                .foregroundColor(.green)
+                                            Text("Pro Active")
+                                                .font(.system(size: 13, weight: .medium))
+                                                .foregroundColor(.green)
+                                        }
+                                    } else {
+                                        Text("Free")
+                                            .font(.system(size: 13, weight: .medium))
+                                            .foregroundColor(.secondary)
+                                    }
+                                }
+                                
+                                Spacer()
+                                
+                                if !ProManager.shared.isPro {
+                                    Button(action: {
+                                        ProManager.shared.upgradeToPro()
+                                    }) {
+                                        HStack(spacing: 6) {
+                                            Image(systemName: "star.fill")
+                                                .font(.system(size: 11))
+                                            Text("Upgrade")
+                                                .font(.system(size: 12, weight: .medium))
+                                        }
+                                    }
+                                    .buttonStyle(.bordered)
+                                    .controlSize(.small)
+                                } else {
+                                    Button(action: {
+                                        ProManager.shared.downgradeFromPro()
+                                    }) {
+                                        Text("Reset (Dev)")
+                                            .font(.system(size: 12, weight: .medium))
+                                    }
+                                    .buttonStyle(.bordered)
+                                    .controlSize(.small)
+                                }
+                            }
+                        }
+                    }
+                    
+                    Divider()
+                        .padding(.horizontal, 16)
+                    
                     // Reset Welcome Section
                     SettingsSectionContent(title: "Welcome") {
                         Button(action: {

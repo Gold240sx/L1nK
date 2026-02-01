@@ -3,8 +3,45 @@ import AppKit
 
 struct ContentView: View {
     @StateObject private var viewModel = ContentViewModel()
+    @StateObject private var proManager = ProManager.shared
+    @State private var selectedTab: ContentTab = .main
+
+    enum ContentTab {
+        case main
+        case pro
+    }
 
     var body: some View {
+        VStack(spacing: 0) {
+            // Tab selector
+            HStack(spacing: 0) {
+                TabButton(
+                    title: "Main",
+                    icon: "link",
+                    isSelected: selectedTab == .main,
+                    action: { selectedTab = .main }
+                )
+                
+                TabButton(
+                    title: "Pro",
+                    icon: "star.fill",
+                    isSelected: selectedTab == .pro,
+                    action: { selectedTab = .pro }
+                )
+            }
+            .padding(.horizontal, 8)
+            .padding(.top, 8)
+            
+            // Content based on selected tab
+            if selectedTab == .main {
+                mainContentView
+            } else {
+                ProFeaturesView()
+            }
+        }
+    }
+    
+    private var mainContentView: some View {
         VStack(spacing: 0) {
             // Main content area
             VStack(spacing: 28) {
@@ -91,14 +128,38 @@ struct ContentView: View {
                 .disabled(viewModel.isProcessing)
                 .padding(.horizontal, 32)
                 
-                // Status message
-                if !viewModel.message.isEmpty {
-                    Text(viewModel.message)
-                        .font(.system(size: 12))
-                        .foregroundColor(.secondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 32)
-                        .transition(.opacity.combined(with: .scale(scale: 0.95)))
+                // Status message and Show in Finder button
+                if !viewModel.message.isEmpty || viewModel.showFinderButton {
+                    VStack(spacing: 10) {
+                        if !viewModel.message.isEmpty {
+                            Text(viewModel.message)
+                                .font(.system(size: 12))
+                                .foregroundColor(viewModel.message.contains("✓") ? .green : .secondary)
+                                .multilineTextAlignment(.center)
+                        }
+                        
+                        if viewModel.showFinderButton {
+                            Button(action: { viewModel.showInFinder() }) {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "folder")
+                                        .font(.system(size: 11))
+                                    Text("Show in Finder")
+                                        .font(.system(size: 12, weight: .medium))
+                                }
+                                .foregroundColor(.blue)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 6)
+                                        .fill(Color.blue.opacity(0.1))
+                                )
+                            }
+                            .buttonStyle(.plain)
+                            .transition(.opacity.combined(with: .move(edge: .top)))
+                        }
+                    }
+                    .padding(.horizontal, 32)
+                    .transition(.opacity.combined(with: .scale(scale: 0.95)))
                 }
                 
                 Spacer()
@@ -155,5 +216,31 @@ struct ContentView: View {
                 secondaryButton: .cancel()
             )
         }
+    }
+}
+
+struct TabButton: View {
+    let title: String
+    let icon: String
+    let isSelected: Bool
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 6) {
+                Image(systemName: icon)
+                    .font(.system(size: 12, weight: .medium))
+                Text(title)
+                    .font(.system(size: 13, weight: .medium))
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 32)
+            .background {
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(isSelected ? Color.blue.opacity(0.15) : Color.clear)
+            }
+            .foregroundColor(isSelected ? .blue : .secondary)
+        }
+        .buttonStyle(.plain)
     }
 }

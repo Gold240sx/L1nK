@@ -9,6 +9,7 @@ class SettingsViewModel: ObservableObject {
     @AppStorage("launchAtLogin") var launchAtLogin: Bool = false
     @AppStorage("useCustomYouTubeApp") var useCustomYouTubeApp: Bool = false
     @AppStorage("customYouTubeAppPath") var customYouTubeAppPath: String = ""
+    @AppStorage("useGenericIcons") var useGenericIcons: Bool = false
     
     @Published var message: String = ""
     @Published var showPermissionAlert: Bool = false
