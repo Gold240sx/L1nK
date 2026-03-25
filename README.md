@@ -1,6 +1,6 @@
 # L1nK
 
-L1nK is a powerful macOS menu bar utility that creates generic link files (`.l1nk`) for any URL. It treats web links as first-class citizens in your file system, with special integrations for popular services.
+L1nK is a powerful macOS menu bar utility that creates generic link files (`.l1nk`) for any URL. It treats web links as first-class citizens in your file system, with special integrations for popular services. test
 
 ## Features
 
